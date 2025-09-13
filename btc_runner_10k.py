@@ -1,11 +1,12 @@
 """
-BTC Runner - Simple, focused BTC analysis with fixed training
+BTC Runner 10K - Balanced analysis with 10,000 data points
 """
 
 import pandas as pd
 import numpy as np
 import warnings
 import sys
+import time
 
 # Add current directory to path
 sys.path.append('/workspace')
@@ -45,59 +46,59 @@ def load_btc_data():
     return ohlcv_data
 
 def main():
-    """Run BTC analysis with fixed training."""
-    print("🚀 BTC Runner - Complete System Analysis")
+    """Run BTC analysis with 10,000 data points."""
+    print("🚀 BTC Runner 10K - Balanced Analysis")
     print("=" * 60)
-    print("🎯 Running complete system with your BTC data")
+    print("🎯 Running system with 10,000 BTC data points")
     print("=" * 60)
     
     # Load BTC data
     data = load_btc_data()
     
-    # Use last 30000 bars for comprehensive analysis
-    data = data.tail(30000)
-    print(f"   Using last {len(data)} bars for comprehensive analysis")
+    # Use last 10000 bars for balanced analysis
+    data = data.tail(10000)
+    print(f"   Using last {len(data)} bars for balanced analysis")
     
-    # Create system with enhanced context features
+    # Create system with balanced settings
     config = SystemConfig(
         # Swing detection
-        swing_window=20,
-        min_swing_strength=0.3,
-        min_swing_size=0.002,
+        swing_window=25,
+        min_swing_strength=0.4,
+        min_swing_size=0.0015,
         
         # Fibonacci zones - will be learned from data
         learn_levels=True,  # Enable adaptive level learning
-        zone_width_factor=0.08,
+        zone_width_factor=0.1,
         min_zone_size=0.001,
         
         # Event generation
         min_touch_duration=1,
         max_event_duration=100,
-        wick_rejection_threshold=0.25,
+        wick_rejection_threshold=0.3,
         
         # Enhanced context features
         enable_enhanced_context=True,  # Enable enhanced context features
-        context_momentum_period=10,
-        context_historical_period=50,
+        context_momentum_period=15,
+        context_historical_period=60,
         context_failure_tracking=True,
         
         # Feature extraction
-        atr_period=14,
-        trend_period=20,
-        volatility_period=20,
+        atr_period=20,
+        trend_period=30,
+        volatility_period=30,
         
         # Labeling
-        lookforward_window=30,
-        reversal_threshold=2.0,
-        continuation_threshold=1.0,
-        atr_multiplier=1.0,
-        min_confidence=0.6,
+        lookforward_window=40,
+        reversal_threshold=2.5,
+        continuation_threshold=1.5,
+        atr_multiplier=1.2,
+        min_confidence=0.7,
         
         # Model training
         test_size=0.2,
         validation_size=0.2,
         random_state=42,
-        n_splits=5,
+        n_splits=3,
         
         # Backtesting
         initial_capital=100000,
@@ -109,14 +110,21 @@ def main():
     
     # Initialize system
     print(f"\n🔧 Initializing system...")
+    start_time = time.time()
     system = FibMLSystem(config)
+    init_time = time.time() - start_time
+    print(f"   ✅ System initialized in {init_time:.1f} seconds")
     
     # Train system
     print(f"\n🎓 Training system...")
+    print(f"   Processing {len(data)} bars with enhanced context features...")
+    
     try:
+        train_start = time.time()
         model_results = system.train(data, save_models=False)
+        train_time = time.time() - train_start
         
-        print(f"   ✅ Training completed successfully!")
+        print(f"   ✅ Training completed in {train_time:.1f} seconds!")
         print(f"   📊 Model Performance:")
         print(f"      Classifier accuracy: {model_results.performance_metrics['classifier']['accuracy']:.3f}")
         print(f"      Target regressor R²: {model_results.performance_metrics['regression']['target_price']['r2']:.3f}")
@@ -134,11 +142,13 @@ def main():
         
         # Run backtest
         print(f"\n📈 Running backtest...")
+        backtest_start = time.time()
         backtest_results = system.backtest()
+        backtest_time = time.time() - backtest_start
         
         # Show backtest results
         metrics = backtest_results.performance_metrics
-        print(f"   📊 Backtest Results:")
+        print(f"   📊 Backtest Results (completed in {backtest_time:.1f}s):")
         print(f"      Total trades: {metrics.get('total_trades', 0)}")
         print(f"      Win rate: {metrics.get('win_rate', 0):.1%}")
         print(f"      Total return: {metrics.get('total_return', 0):.1%}")
@@ -161,16 +171,17 @@ def main():
             print(f"         Context Tags: {pred['context_tags']}")
             print()
         
-        print(f"🎉 BTC Analysis Complete!")
-        print(f"   ✅ System successfully trained with your BTC data")
+        total_time = time.time() - start_time
+        print(f"🎉 BTC 10K Analysis Complete!")
+        print(f"   ✅ Total processing time: {total_time:.1f} seconds")
+        print(f"   ✅ System successfully trained with {len(data)} BTC data points")
         print(f"   ✅ Enhanced context features working")
         print(f"   ✅ Context-aware predictions generated")
         print(f"   ✅ Ready for live trading!")
         
     except Exception as e:
         print(f"   ❌ Training failed: {e}")
-        print(f"   The event_id error has been fixed, but there might be other issues.")
-        print(f"   Let me know what the specific error is and I'll fix it.")
+        print(f"   Error details: {str(e)}")
 
 if __name__ == "__main__":
     main()

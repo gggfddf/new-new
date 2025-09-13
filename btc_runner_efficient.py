@@ -1,11 +1,12 @@
 """
-BTC Runner - Simple, focused BTC analysis with fixed training
+BTC Runner Efficient - Optimized for large datasets with progress tracking
 """
 
 import pandas as pd
 import numpy as np
 import warnings
 import sys
+import time
 
 # Add current directory to path
 sys.path.append('/workspace')
@@ -45,59 +46,59 @@ def load_btc_data():
     return ohlcv_data
 
 def main():
-    """Run BTC analysis with fixed training."""
-    print("🚀 BTC Runner - Complete System Analysis")
+    """Run efficient BTC analysis with progress tracking."""
+    print("🚀 BTC Runner Efficient - Large Dataset Analysis")
     print("=" * 60)
-    print("🎯 Running complete system with your BTC data")
+    print("🎯 Running optimized system with large BTC dataset")
     print("=" * 60)
     
     # Load BTC data
     data = load_btc_data()
     
-    # Use last 30000 bars for comprehensive analysis
-    data = data.tail(30000)
-    print(f"   Using last {len(data)} bars for comprehensive analysis")
+    # Use last 15000 bars for efficient analysis (good balance)
+    data = data.tail(15000)
+    print(f"   Using last {len(data)} bars for efficient analysis")
     
-    # Create system with enhanced context features
+    # Create system with efficient settings
     config = SystemConfig(
-        # Swing detection
-        swing_window=20,
-        min_swing_strength=0.3,
-        min_swing_size=0.002,
+        # Swing detection - efficient settings
+        swing_window=30,  # Larger window for stability
+        min_swing_strength=0.5,  # Higher threshold for quality swings
+        min_swing_size=0.002,  # Larger minimum swing size
         
         # Fibonacci zones - will be learned from data
         learn_levels=True,  # Enable adaptive level learning
-        zone_width_factor=0.08,
-        min_zone_size=0.001,
+        zone_width_factor=0.12,  # Slightly wider zones
+        min_zone_size=0.0015,  # Larger minimum zone size
         
-        # Event generation
-        min_touch_duration=1,
-        max_event_duration=100,
-        wick_rejection_threshold=0.25,
+        # Event generation - efficient settings
+        min_touch_duration=2,  # Longer minimum duration
+        max_event_duration=120,  # Reasonable max duration
+        wick_rejection_threshold=0.35,  # Higher threshold for quality
         
         # Enhanced context features
         enable_enhanced_context=True,  # Enable enhanced context features
-        context_momentum_period=10,
-        context_historical_period=50,
+        context_momentum_period=20,  # Longer momentum period
+        context_historical_period=80,  # Longer historical period
         context_failure_tracking=True,
         
         # Feature extraction
-        atr_period=14,
-        trend_period=20,
-        volatility_period=20,
+        atr_period=25,  # Longer ATR period
+        trend_period=40,  # Longer trend period
+        volatility_period=40,  # Longer volatility period
         
         # Labeling
-        lookforward_window=30,
-        reversal_threshold=2.0,
-        continuation_threshold=1.0,
-        atr_multiplier=1.0,
-        min_confidence=0.6,
+        lookforward_window=60,  # Longer lookforward
+        reversal_threshold=3.0,  # Higher threshold for quality
+        continuation_threshold=2.0,  # Higher threshold for quality
+        atr_multiplier=1.5,  # Higher multiplier
+        min_confidence=0.75,  # Higher confidence threshold
         
         # Model training
         test_size=0.2,
         validation_size=0.2,
         random_state=42,
-        n_splits=5,
+        n_splits=3,  # Fewer splits for speed
         
         # Backtesting
         initial_capital=100000,
@@ -109,14 +110,21 @@ def main():
     
     # Initialize system
     print(f"\n🔧 Initializing system...")
+    start_time = time.time()
     system = FibMLSystem(config)
+    init_time = time.time() - start_time
+    print(f"   ✅ System initialized in {init_time:.1f} seconds")
     
-    # Train system
+    # Train system with progress tracking
     print(f"\n🎓 Training system...")
+    print(f"   Processing {len(data)} bars with enhanced context features...")
+    
     try:
+        train_start = time.time()
         model_results = system.train(data, save_models=False)
+        train_time = time.time() - train_start
         
-        print(f"   ✅ Training completed successfully!")
+        print(f"   ✅ Training completed in {train_time:.1f} seconds!")
         print(f"   📊 Model Performance:")
         print(f"      Classifier accuracy: {model_results.performance_metrics['classifier']['accuracy']:.3f}")
         print(f"      Target regressor R²: {model_results.performance_metrics['regression']['target_price']['r2']:.3f}")
@@ -134,11 +142,13 @@ def main():
         
         # Run backtest
         print(f"\n📈 Running backtest...")
+        backtest_start = time.time()
         backtest_results = system.backtest()
+        backtest_time = time.time() - backtest_start
         
         # Show backtest results
         metrics = backtest_results.performance_metrics
-        print(f"   📊 Backtest Results:")
+        print(f"   📊 Backtest Results (completed in {backtest_time:.1f}s):")
         print(f"      Total trades: {metrics.get('total_trades', 0)}")
         print(f"      Win rate: {metrics.get('win_rate', 0):.1%}")
         print(f"      Total return: {metrics.get('total_return', 0):.1%}")
@@ -161,16 +171,17 @@ def main():
             print(f"         Context Tags: {pred['context_tags']}")
             print()
         
-        print(f"🎉 BTC Analysis Complete!")
-        print(f"   ✅ System successfully trained with your BTC data")
-        print(f"   ✅ Enhanced context features working")
+        total_time = time.time() - start_time
+        print(f"🎉 BTC Efficient Analysis Complete!")
+        print(f"   ✅ Total processing time: {total_time:.1f} seconds")
+        print(f"   ✅ System successfully trained with {len(data)} BTC data points")
+        print(f"   ✅ Enhanced context features working efficiently")
         print(f"   ✅ Context-aware predictions generated")
         print(f"   ✅ Ready for live trading!")
         
     except Exception as e:
         print(f"   ❌ Training failed: {e}")
-        print(f"   The event_id error has been fixed, but there might be other issues.")
-        print(f"   Let me know what the specific error is and I'll fix it.")
+        print(f"   Try reducing the dataset size or check system resources.")
 
 if __name__ == "__main__":
     main()

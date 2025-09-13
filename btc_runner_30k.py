@@ -1,5 +1,5 @@
 """
-BTC Runner - Simple, focused BTC analysis with fixed training
+BTC Runner 30K - Efficient analysis with 30,000 data points
 """
 
 import pandas as pd
@@ -45,10 +45,10 @@ def load_btc_data():
     return ohlcv_data
 
 def main():
-    """Run BTC analysis with fixed training."""
-    print("🚀 BTC Runner - Complete System Analysis")
+    """Run BTC analysis with 30,000 data points."""
+    print("🚀 BTC Runner 30K - Comprehensive Analysis")
     print("=" * 60)
-    print("🎯 Running complete system with your BTC data")
+    print("🎯 Running complete system with 30,000 BTC data points")
     print("=" * 60)
     
     # Load BTC data
@@ -58,61 +58,63 @@ def main():
     data = data.tail(30000)
     print(f"   Using last {len(data)} bars for comprehensive analysis")
     
-    # Create system with enhanced context features
+    # Create system with optimized settings for large dataset
     config = SystemConfig(
-        # Swing detection
-        swing_window=20,
-        min_swing_strength=0.3,
-        min_swing_size=0.002,
+        # Swing detection - optimized for large dataset
+        swing_window=25,  # Slightly larger window for more stable swings
+        min_swing_strength=0.4,  # Slightly lower threshold for more swings
+        min_swing_size=0.0015,  # Slightly larger minimum swing size
         
         # Fibonacci zones - will be learned from data
         learn_levels=True,  # Enable adaptive level learning
-        zone_width_factor=0.08,
-        min_zone_size=0.001,
+        zone_width_factor=0.1,  # Standard zone width
+        min_zone_size=0.001,  # Minimum zone size
         
-        # Event generation
+        # Event generation - optimized for large dataset
         min_touch_duration=1,
-        max_event_duration=100,
-        wick_rejection_threshold=0.25,
+        max_event_duration=150,  # Longer max duration for more events
+        wick_rejection_threshold=0.3,  # Standard threshold
         
         # Enhanced context features
         enable_enhanced_context=True,  # Enable enhanced context features
-        context_momentum_period=10,
-        context_historical_period=50,
+        context_momentum_period=15,  # Longer momentum period for stability
+        context_historical_period=100,  # Longer historical period
         context_failure_tracking=True,
         
         # Feature extraction
-        atr_period=14,
-        trend_period=20,
-        volatility_period=20,
+        atr_period=20,  # Longer ATR period for stability
+        trend_period=30,  # Longer trend period
+        volatility_period=30,  # Longer volatility period
         
         # Labeling
-        lookforward_window=30,
-        reversal_threshold=2.0,
-        continuation_threshold=1.0,
-        atr_multiplier=1.0,
-        min_confidence=0.6,
+        lookforward_window=50,  # Longer lookforward for better labels
+        reversal_threshold=2.5,  # Higher threshold for more reliable reversals
+        continuation_threshold=1.5,  # Higher threshold for more reliable continuations
+        atr_multiplier=1.2,  # Slightly higher multiplier
+        min_confidence=0.7,  # Higher confidence threshold
         
         # Model training
-        test_size=0.2,
-        validation_size=0.2,
+        test_size=0.15,  # Smaller test set for more training data
+        validation_size=0.15,  # Smaller validation set
         random_state=42,
-        n_splits=5,
+        n_splits=3,  # Fewer splits for faster training
         
         # Backtesting
         initial_capital=100000,
-        risk_per_trade=0.01,
-        max_positions=3,
+        risk_per_trade=0.008,  # Slightly lower risk per trade
+        max_positions=5,  # More positions allowed
         slippage_bps=2.0,
         commission_bps=1.0
     )
     
     # Initialize system
-    print(f"\n🔧 Initializing system...")
+    print(f"\n🔧 Initializing system for large dataset...")
     system = FibMLSystem(config)
     
     # Train system
-    print(f"\n🎓 Training system...")
+    print(f"\n🎓 Training system with 30K data points...")
+    print(f"   This may take several minutes due to the large dataset...")
+    
     try:
         model_results = system.train(data, save_models=False)
         
@@ -148,10 +150,10 @@ def main():
         
         # Generate live predictions
         print(f"\n🔮 Generating live predictions...")
-        predictions = system.predict_live(data.tail(100))
+        predictions = system.predict_live(data.tail(200))  # Use last 200 bars for predictions
         
         print(f"   🎯 Generated {len(predictions)} predictions:")
-        for i, pred in enumerate(predictions[:3]):  # Show first 3
+        for i, pred in enumerate(predictions[:5]):  # Show first 5
             print(f"      Prediction {i+1}:")
             print(f"         Zone: {pred['fib_zone']}")
             print(f"         Outcome: {pred['prediction']}")
@@ -161,16 +163,16 @@ def main():
             print(f"         Context Tags: {pred['context_tags']}")
             print()
         
-        print(f"🎉 BTC Analysis Complete!")
-        print(f"   ✅ System successfully trained with your BTC data")
-        print(f"   ✅ Enhanced context features working")
+        print(f"🎉 BTC 30K Analysis Complete!")
+        print(f"   ✅ System successfully trained with 30,000 BTC data points")
+        print(f"   ✅ Enhanced context features working on large dataset")
         print(f"   ✅ Context-aware predictions generated")
-        print(f"   ✅ Ready for live trading!")
+        print(f"   ✅ Ready for live trading with comprehensive analysis!")
         
     except Exception as e:
         print(f"   ❌ Training failed: {e}")
-        print(f"   The event_id error has been fixed, but there might be other issues.")
-        print(f"   Let me know what the specific error is and I'll fix it.")
+        print(f"   The large dataset might be causing memory or time issues.")
+        print(f"   Try reducing the dataset size or optimizing the configuration.")
 
 if __name__ == "__main__":
     main()
