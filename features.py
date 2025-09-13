@@ -86,7 +86,8 @@ class FeatureExtractor:
             **impulse,
             **zone_interaction,
             **structural,
-            **temporal
+            **temporal,
+            'event_id': event.event_id  # Add event_id for alignment with labels
         }
         
         return FeatureSet(
@@ -693,14 +694,18 @@ class FeatureExtractor:
             feature_sets: List of FeatureSet objects
             
         Returns:
-            DataFrame with all features
+            DataFrame with all features including event_id
         """
         if not feature_sets:
             return pd.DataFrame()
         
         feature_data = []
         for feature_set in feature_sets:
-            feature_data.append(feature_set.raw_features)
+            row = feature_set.raw_features.copy()
+            # event_id should already be in the raw_features from the event
+            if 'event_id' not in row:
+                row['event_id'] = 'unknown'  # Fallback if not present
+            feature_data.append(row)
         
         return pd.DataFrame(feature_data)
 

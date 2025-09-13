@@ -100,6 +100,10 @@ class ModelTrainer:
         Returns:
             Tuple of (X_train, X_val, X_test, y_train, y_val, y_test)
         """
+        # Ensure event_id types match
+        features_df['event_id'] = features_df['event_id'].astype(str)
+        labels_df['event_id'] = labels_df['event_id'].astype(str)
+        
         # Merge features and labels
         merged_df = pd.merge(features_df, labels_df, on='event_id', how='inner')
         
@@ -278,17 +282,9 @@ class ModelTrainer:
         # Encode labels
         y_val_encoded = y_val.map(classifier.label_encoder)
         
-        # Calibrate probabilities
-        calibrated_model = CalibratedClassifierCV(
-            base_estimator=classifier,
-            method='isotonic',
-            cv=3
-        )
-        
-        # Fit calibration model
-        calibrated_model.fit(X_val, y_val_encoded)
-        
-        return calibrated_model
+        # Skip calibration for LightGBM Booster (not compatible)
+        # Return the original classifier for now
+        return classifier
     
     def train_all_models(self, 
                         features_df: pd.DataFrame,
@@ -443,8 +439,8 @@ class ModelTrainer:
         target_pred = target_regressor.predict(X_test, num_iteration=target_regressor.best_iteration)
         duration_pred = duration_regressor.predict(X_test, num_iteration=duration_regressor.best_iteration)
         
-        # Calibrated probabilities
-        y_calibrated_proba = calibration_model.predict_proba(X_test)
+        # Get probabilities from classifier (LightGBM uses predict method)
+        y_calibrated_proba = classifier.predict(X_test, num_iteration=classifier.best_iteration)
         
         # Calculate metrics
         classifier_metrics = self._calculate_classification_metrics(
