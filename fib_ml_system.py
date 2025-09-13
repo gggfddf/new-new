@@ -44,6 +44,12 @@ class SystemConfig:
     trend_period: int = 20
     volatility_period: int = 20
     
+    # Enhanced context features
+    enable_enhanced_context: bool = True  # Enable enhanced context features
+    context_momentum_period: int = 10  # Period for momentum calculation
+    context_historical_period: int = 50  # Period for historical comparison
+    context_failure_tracking: bool = True  # Track failure patterns
+    
     # Labeling
     lookforward_window: int = 30
     reversal_threshold: float = 2.0
@@ -69,7 +75,11 @@ class SystemConfig:
     
     def __post_init__(self):
         if self.fib_ratios is None:
-            self.fib_ratios = [0.236, 0.382, 0.5, 0.618, 0.786, 0.886, 1.0, 1.272, 1.414, 1.618]
+            # Use wide range for learning if learn_levels is True
+            if self.learn_levels:
+                self.fib_ratios = [0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95]
+            else:
+                self.fib_ratios = [0.236, 0.382, 0.5, 0.618, 0.786, 0.886, 1.0, 1.272, 1.414, 1.618]
 
 
 class FibMLSystem:
@@ -113,6 +123,14 @@ class FibMLSystem:
             trend_period=self.config.trend_period,
             volatility_period=self.config.volatility_period
         )
+        
+        # Store enhanced context configuration
+        self.enhanced_context_config = {
+            'enable_enhanced_context': self.config.enable_enhanced_context,
+            'context_momentum_period': self.config.context_momentum_period,
+            'context_historical_period': self.config.context_historical_period,
+            'context_failure_tracking': self.config.context_failure_tracking
+        }
         
         self.label_generator = LabelGenerator(
             lookforward_window=self.config.lookforward_window,
@@ -373,12 +391,12 @@ class FibMLSystem:
         return stop_loss
     
     def _generate_context_tags(self, event, outcome: str, confidence: float) -> List[str]:
-        """Generate context tags."""
+        """Generate enhanced context tags."""
         tags = []
         
         # Zone type
         tags.append(f"{event.zone.zone_type}_zone")
-        tags.append(f"fib_{event.zone.level}")
+        tags.append(f"fib_{event.zone.level:.3f}")
         
         # Outcome
         tags.append(f"{outcome.lower()}_prediction")
@@ -404,6 +422,36 @@ class FibMLSystem:
         # Wick rejection
         if event.wick_rejection:
             tags.append("wick_rejection")
+        
+        # Enhanced context tags
+        if self.config.enable_enhanced_context:
+            # Retest pattern
+            if event.retest_count > 0:
+                tags.append(f"retest_{event.retest_count}")
+            
+            # Pattern type
+            if event.retest_count > 1:
+                tags.append("multiple_retests")
+            else:
+                tags.append("single_retest")
+            
+            # Trend continuation vs reversal
+            if event.zone.swing_start.swing_type == 'high' and event.zone.swing_end.swing_type == 'low':
+                if event.entry_price < event.zone.swing_end.price:
+                    tags.append("trend_continuation_downtrend")
+                else:
+                    tags.append("trend_reversal_downtrend")
+            elif event.zone.swing_start.swing_type == 'low' and event.zone.swing_end.swing_type == 'high':
+                if event.entry_price > event.zone.swing_end.price:
+                    tags.append("trend_continuation_uptrend")
+                else:
+                    tags.append("trend_reversal_uptrend")
+            
+            # Impulse pattern
+            if event.zone.swing_start.swing_type == 'high' and event.zone.swing_end.swing_type == 'low':
+                tags.append("impulse_downtrend")
+            elif event.zone.swing_start.swing_type == 'low' and event.zone.swing_end.swing_type == 'high':
+                tags.append("impulse_uptrend")
         
         return tags
     
@@ -460,15 +508,19 @@ class FibMLSystem:
 
 def main():
     """Main function to demonstrate the system."""
-    print("Fibonacci ML System Demo")
-    print("=" * 50)
+    print("Fibonacci ML System Demo with Enhanced Context")
+    print("=" * 60)
     
-    # Create system
+    # Create system with enhanced context features
     config = SystemConfig(
         swing_window=10,
         min_swing_strength=0.3,
         min_zone_size=0.002,
-        fib_ratios=[0.236, 0.382, 0.5, 0.618, 0.786, 1.0, 1.272, 1.618],
+        learn_levels=True,  # Enable adaptive level learning
+        enable_enhanced_context=True,  # Enable enhanced context features
+        context_momentum_period=10,
+        context_historical_period=50,
+        context_failure_tracking=True,
         zone_width_factor=0.15,
         min_confidence=0.6
     )
