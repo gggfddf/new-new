@@ -499,6 +499,10 @@ class FeatureExtractor:
         failure_pattern = self._calculate_failure_pattern_context(data, event, swings)
         features.update(failure_pattern)
         
+        # Price action pattern context
+        price_action_pattern = self._calculate_price_action_pattern_context(data, event, swings, atr)
+        features.update(price_action_pattern)
+        
         return features
     
     def _calculate_market_direction_context(self, 
@@ -682,6 +686,91 @@ class FeatureExtractor:
         features['failure_pattern_2_3_fails'] = 0  # Failed 2-3 times before
         features['failure_pattern_4_plus_fails'] = 0  # Failed 4+ times before
         features['success_after_multiple_failures'] = 0  # Success after multiple failures
+        
+        return features
+    
+    def _calculate_price_action_pattern_context(self, 
+                                              data: pd.DataFrame,
+                                              event: ZoneEvent,
+                                              swings: List[Swing],
+                                              atr: pd.Series) -> Dict:
+        """Calculate price action pattern context - direct, retracement, rejection."""
+        features = {}
+        
+        # Get current ATR value
+        current_atr = atr.iloc[event.entry_index] if event.entry_index < len(atr) else atr.iloc[-1]
+        
+        # Calculate impulse strength
+        if event.entry_index >= 5:
+            recent_highs = data['high'].iloc[event.entry_index-5:event.entry_index+1]
+            recent_lows = data['low'].iloc[event.entry_index-5:event.entry_index+1]
+            impulse_range = (recent_highs.max() - recent_lows.min()) / current_atr
+            features['impulse_strength_atr'] = impulse_range
+        else:
+            features['impulse_strength_atr'] = 0.0
+        
+        # Determine price action pattern
+        wick_rejection = features.get('wick_rejection', 0)
+        impulse_strength = features['impulse_strength_atr']
+        
+        # Pattern classification
+        if wick_rejection and impulse_strength > 8.0:
+            pattern_type = "rejection"
+        elif impulse_strength > 10.0 and not wick_rejection:
+            pattern_type = "direct"
+        elif impulse_strength < 6.0:
+            pattern_type = "retracement"
+        else:
+            pattern_type = "mixed"
+        
+        # Pattern features
+        features['pattern_direct'] = 1 if pattern_type == "direct" else 0
+        features['pattern_retracement'] = 1 if pattern_type == "retracement" else 0
+        features['pattern_rejection'] = 1 if pattern_type == "rejection" else 0
+        features['pattern_mixed'] = 1 if pattern_type == "mixed" else 0
+        
+        # Direction context for direct patterns
+        if pattern_type == "direct":
+            if event.entry_index >= 10:
+                recent_closes = data['close'].iloc[event.entry_index-10:event.entry_index]
+                price_direction = (recent_closes.iloc[-1] - recent_closes.iloc[0]) / recent_closes.iloc[0]
+                features['direct_from_above'] = 1 if price_direction < -0.005 else 0
+                features['direct_from_below'] = 1 if price_direction > 0.005 else 0
+            else:
+                features['direct_from_above'] = 0
+                features['direct_from_below'] = 0
+        else:
+            features['direct_from_above'] = 0
+            features['direct_from_below'] = 0
+        
+        # Timing context
+        if event.entry_index < len(data):
+            entry_time = data.index[event.entry_index]
+            features['session_hour'] = entry_time.hour
+            features['day_of_week'] = entry_time.weekday()
+        else:
+            features['session_hour'] = 12
+            features['day_of_week'] = 3
+        
+        # Trend length context
+        if len(swings) >= 2:
+            recent_swings = swings[-2:]
+            if len(recent_swings) == 2:
+                swing_distance = abs(recent_swings[1].index - recent_swings[0].index)
+                features['trend_length_bars'] = swing_distance
+                features['trend_length_short'] = 1 if swing_distance < 20 else 0
+                features['trend_length_medium'] = 1 if 20 <= swing_distance < 50 else 0
+                features['trend_length_long'] = 1 if swing_distance >= 50 else 0
+            else:
+                features['trend_length_bars'] = 0
+                features['trend_length_short'] = 0
+                features['trend_length_medium'] = 0
+                features['trend_length_long'] = 0
+        else:
+            features['trend_length_bars'] = 0
+            features['trend_length_short'] = 0
+            features['trend_length_medium'] = 0
+            features['trend_length_long'] = 0
         
         return features
     
