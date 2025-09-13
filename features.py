@@ -125,6 +125,10 @@ class FeatureExtractor:
         structure_features = self._calculate_market_structure_features(data, event, swings)
         features.update(structure_features)
         
+        # Enhanced context features
+        context_features = self._calculate_enhanced_context_features(data, event, swings, atr)
+        features.update(context_features)
+        
         return features
     
     def _extract_impulse_features(self, 
@@ -461,6 +465,224 @@ class FeatureExtractor:
                 return 1
         
         return 0
+    
+    def _calculate_enhanced_context_features(self, 
+                                           data: pd.DataFrame,
+                                           event: ZoneEvent,
+                                           swings: List[Swing],
+                                           atr: pd.Series) -> Dict:
+        """Calculate enhanced context features for better prediction."""
+        features = {}
+        
+        # Market direction context
+        market_direction = self._calculate_market_direction_context(data, event, swings)
+        features.update(market_direction)
+        
+        # Impulse pattern context
+        impulse_pattern = self._calculate_impulse_pattern_context(data, event, swings, atr)
+        features.update(impulse_pattern)
+        
+        # Previous Fibonacci zone context
+        fib_context = self._calculate_fibonacci_context(data, event, swings)
+        features.update(fib_context)
+        
+        # Retest and breakout patterns
+        retest_pattern = self._calculate_retest_pattern_context(data, event, swings)
+        features.update(retest_pattern)
+        
+        # Trend continuation patterns
+        trend_continuation = self._calculate_trend_continuation_context(data, event, swings)
+        features.update(trend_continuation)
+        
+        # Failure pattern learning
+        failure_pattern = self._calculate_failure_pattern_context(data, event, swings)
+        features.update(failure_pattern)
+        
+        return features
+    
+    def _calculate_market_direction_context(self, 
+                                          data: pd.DataFrame,
+                                          event: ZoneEvent,
+                                          swings: List[Swing]) -> Dict:
+        """Calculate market direction context."""
+        features = {}
+        
+        # Recent price momentum
+        if event.entry_index >= 10:
+            recent_closes = data['close'].iloc[event.entry_index-10:event.entry_index]
+            price_momentum = (recent_closes.iloc[-1] - recent_closes.iloc[0]) / recent_closes.iloc[0]
+            features['price_momentum_10'] = price_momentum
+            features['price_momentum_bullish'] = 1 if price_momentum > 0.01 else 0
+            features['price_momentum_bearish'] = 1 if price_momentum < -0.01 else 0
+        
+        # Swing direction context
+        recent_swings = [s for s in swings if s.index < event.entry_index][-3:]
+        if len(recent_swings) >= 2:
+            # Check if recent swings are making higher highs/lower lows
+            if len(recent_swings) >= 2:
+                if (recent_swings[-1].swing_type == 'high' and 
+                    recent_swings[-2].swing_type == 'high' and
+                    recent_swings[-1].price > recent_swings[-2].price):
+                    features['swing_direction_higher_highs'] = 1
+                else:
+                    features['swing_direction_higher_highs'] = 0
+                
+                if (recent_swings[-1].swing_type == 'low' and 
+                    recent_swings[-2].swing_type == 'low' and
+                    recent_swings[-1].price < recent_swings[-2].price):
+                    features['swing_direction_lower_lows'] = 1
+                else:
+                    features['swing_direction_lower_lows'] = 0
+        
+        return features
+    
+    def _calculate_impulse_pattern_context(self, 
+                                         data: pd.DataFrame,
+                                         event: ZoneEvent,
+                                         swings: List[Swing],
+                                         atr: pd.Series) -> Dict:
+        """Calculate impulse pattern context."""
+        features = {}
+        
+        # Current impulse strength vs historical
+        current_impulse = abs(event.zone.swing_end.price - event.zone.swing_start.price)
+        current_atr = atr.iloc[event.entry_index] if event.entry_index < len(atr) else atr.iloc[-1]
+        current_impulse_strength = current_impulse / current_atr if current_atr > 0 else 0
+        
+        # Historical impulse strength
+        if event.entry_index >= 50:
+            historical_impulses = []
+            for i in range(max(0, event.entry_index-50), event.entry_index-10):
+                if i < len(swings) - 1:
+                    swing_start = swings[i] if i < len(swings) else None
+                    swing_end = swings[i+1] if i+1 < len(swings) else None
+                    if swing_start and swing_end:
+                        impulse_size = abs(swing_end.price - swing_start.price)
+                        impulse_atr = atr.iloc[i] if i < len(atr) else atr.iloc[-1]
+                        if impulse_atr > 0:
+                            historical_impulses.append(impulse_size / impulse_atr)
+            
+            if historical_impulses:
+                avg_historical_strength = np.mean(historical_impulses)
+                features['impulse_strength_vs_historical'] = current_impulse_strength / avg_historical_strength if avg_historical_strength > 0 else 0
+                features['impulse_strength_above_average'] = 1 if current_impulse_strength > avg_historical_strength else 0
+        
+        # Impulse pattern type
+        if event.zone.swing_start.swing_type == 'high' and event.zone.swing_end.swing_type == 'low':
+            features['impulse_pattern_downtrend'] = 1
+            features['impulse_pattern_uptrend'] = 0
+        elif event.zone.swing_start.swing_type == 'low' and event.zone.swing_end.swing_type == 'high':
+            features['impulse_pattern_uptrend'] = 1
+            features['impulse_pattern_downtrend'] = 0
+        else:
+            features['impulse_pattern_uptrend'] = 0
+            features['impulse_pattern_downtrend'] = 0
+        
+        return features
+    
+    def _calculate_fibonacci_context(self, 
+                                   data: pd.DataFrame,
+                                   event: ZoneEvent,
+                                   swings: List[Swing]) -> Dict:
+        """Calculate previous Fibonacci zone context."""
+        features = {}
+        
+        # Find previous zones at similar levels
+        current_level = event.zone.level
+        recent_swings = [s for s in swings if s.index < event.entry_index][-10:]
+        
+        similar_level_zones = 0
+        successful_similar_zones = 0
+        
+        # This would need access to previous zones - simplified for now
+        features['fib_level_frequency'] = 0  # Placeholder
+        features['fib_level_success_rate'] = 0  # Placeholder
+        
+        return features
+    
+    def _calculate_retest_pattern_context(self, 
+                                        data: pd.DataFrame,
+                                        event: ZoneEvent,
+                                        swings: List[Swing]) -> Dict:
+        """Calculate retest and breakout patterns."""
+        features = {}
+        
+        # Check for direct breakout vs retest
+        zone_lower, zone_upper = event.zone.price_range
+        entry_price = event.entry_price
+        
+        # Direct breakout pattern
+        if entry_price > zone_upper * 1.01:  # 1% above zone
+            features['pattern_direct_breakout_up'] = 1
+            features['pattern_retest'] = 0
+        elif entry_price < zone_lower * 0.99:  # 1% below zone
+            features['pattern_direct_breakout_down'] = 1
+            features['pattern_retest'] = 0
+        else:
+            features['pattern_direct_breakout_up'] = 0
+            features['pattern_direct_breakout_down'] = 0
+            features['pattern_retest'] = 1
+        
+        # Retest count context
+        features['retest_count'] = event.retest_count
+        features['multiple_retests'] = 1 if event.retest_count > 1 else 0
+        
+        return features
+    
+    def _calculate_trend_continuation_context(self, 
+                                            data: pd.DataFrame,
+                                            event: ZoneEvent,
+                                            swings: List[Swing]) -> Dict:
+        """Calculate trend continuation patterns."""
+        features = {}
+        
+        # Trend continuation vs reversal context
+        if event.zone.swing_start.swing_type == 'high' and event.zone.swing_end.swing_type == 'low':
+            # Downtrend - check if this is continuation or reversal
+            if event.entry_price < event.zone.swing_end.price:
+                features['trend_continuation_downtrend'] = 1
+                features['trend_reversal_downtrend'] = 0
+            else:
+                features['trend_continuation_downtrend'] = 0
+                features['trend_reversal_downtrend'] = 1
+        elif event.zone.swing_start.swing_type == 'low' and event.zone.swing_end.swing_type == 'high':
+            # Uptrend - check if this is continuation or reversal
+            if event.entry_price > event.zone.swing_end.price:
+                features['trend_continuation_uptrend'] = 1
+                features['trend_reversal_uptrend'] = 0
+            else:
+                features['trend_continuation_uptrend'] = 0
+                features['trend_reversal_uptrend'] = 1
+        else:
+            features['trend_continuation_uptrend'] = 0
+            features['trend_continuation_downtrend'] = 0
+            features['trend_reversal_uptrend'] = 0
+            features['trend_reversal_downtrend'] = 0
+        
+        return features
+    
+    def _calculate_failure_pattern_context(self, 
+                                         data: pd.DataFrame,
+                                         event: ZoneEvent,
+                                         swings: List[Swing]) -> Dict:
+        """Calculate failure pattern learning (if level failed before, will it work now?)."""
+        features = {}
+        
+        # This would track previous failures at this level
+        # For now, simplified implementation
+        current_level = event.zone.level
+        
+        # Placeholder for failure pattern analysis
+        features['level_failure_count'] = 0  # Would track previous failures
+        features['level_success_after_failures'] = 0  # Would track success after failures
+        features['level_consecutive_failures'] = 0  # Would track consecutive failures
+        
+        # Pattern: if level failed 2-3 times, will it work on 3rd-5th time?
+        features['failure_pattern_2_3_fails'] = 0  # Failed 2-3 times before
+        features['failure_pattern_4_plus_fails'] = 0  # Failed 4+ times before
+        features['success_after_multiple_failures'] = 0  # Success after multiple failures
+        
+        return features
     
     def export_features_to_dataframe(self, 
                                    feature_sets: List[FeatureSet]) -> pd.DataFrame:
