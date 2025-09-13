@@ -395,60 +395,47 @@ class FibZoneGenerator:
     
     def learn_effective_levels(self, zones: List[FibZone], events: List, min_events: int = 10) -> List[float]:
         """
-        Learn which retracement levels are actually effective based on event data.
+        Learn which retracement levels are actually effective based on zone data.
         
         Args:
             zones: List of FibZone objects
-            events: List of zone touch events
-            min_events: Minimum number of events to consider a level effective
+            events: List of zone touch events (not used in simplified version)
+            min_events: Minimum number of zones to consider a level effective
             
         Returns:
             List of effective retracement levels
         """
-        if not zones or not events:
+        if not zones:
             return []
         
-        # Count events per level
-        level_event_count = {}
-        level_success_rate = {}
+        # Count zones per level
+        level_zone_count = {}
+        level_strength = {}
         
         for zone in zones:
             if zone.zone_type == 'retracement':
                 level = zone.level
-                if level not in level_event_count:
-                    level_event_count[level] = 0
-                    level_success_rate[level] = []
+                if level not in level_zone_count:
+                    level_zone_count[level] = 0
+                    level_strength[level] = []
                 
-                # Find events for this zone
-                zone_events = [e for e in events if e.zone.level == level]
-                level_event_count[level] += len(zone_events)
-                
-                # Calculate success rate (simplified - events with wick rejection or retests)
-                for event in zone_events:
-                    success = 0
-                    if hasattr(event, 'wick_rejection') and event.wick_rejection:
-                        success += 1
-                    if hasattr(event, 'retest_count') and event.retest_count > 0:
-                        success += 1
-                    if hasattr(event, 'duration_bars') and event.duration_bars and event.duration_bars > 3:
-                        success += 1
-                    
-                    level_success_rate[level].append(success)
+                level_zone_count[level] += 1
+                level_strength[level].append(zone.strength)
         
-        # Find effective levels
+        # Find effective levels based on zone count and strength
         effective_levels = []
-        for level, count in level_event_count.items():
+        for level, count in level_zone_count.items():
             if count >= min_events:
-                avg_success = np.mean(level_success_rate[level]) if level_success_rate[level] else 0
-                if avg_success > 0.3:  # At least 30% success rate
+                avg_strength = np.mean(level_strength[level]) if level_strength[level] else 0
+                if avg_strength > 0.3:  # At least 30% average strength
                     effective_levels.append(level)
         
-        # Sort by effectiveness (event count * success rate)
+        # Sort by zone count and strength
         effectiveness = []
         for level in effective_levels:
-            count = level_event_count[level]
-            success = np.mean(level_success_rate[level]) if level_success_rate[level] else 0
-            effectiveness.append((level, count * success))
+            count = level_zone_count[level]
+            strength = np.mean(level_strength[level]) if level_strength[level] else 0
+            effectiveness.append((level, count * strength))
         
         effectiveness.sort(key=lambda x: x[1], reverse=True)
         

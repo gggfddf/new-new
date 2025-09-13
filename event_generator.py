@@ -85,7 +85,7 @@ class EventGenerator:
             
             # Check each zone for touches
             for zone in zones:
-                zone_id = f"{zone.zone_type}_{zone.level}_{zone.swing_start.index}_{zone.swing_end.index}"
+                zone_id = f"{zone.zone_type}_{zone.level:.3f}_{zone.swing_start.index % 1000}_{zone.swing_end.index % 1000}"
                 lower_bound, upper_bound = zone.price_range
                 
                 # Check if price is in zone
