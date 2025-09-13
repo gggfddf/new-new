@@ -42,12 +42,13 @@ class FibZoneGenerator:
         Initialize Fibonacci zone generator.
         
         Args:
-            standard_ratios: List of Fibonacci ratios to use
+            standard_ratios: List of ratios to use (will be learned, not traditional Fib)
             zone_width_factor: Factor to determine zone width (as fraction of swing size)
             min_zone_size: Minimum zone size as fraction of price
         """
         if standard_ratios is None:
-            self.standard_ratios = [0.236, 0.382, 0.5, 0.618, 0.786, 0.886, 1.0, 1.272, 1.414, 1.618]
+            # Start with a wide range of potential levels to learn from
+            self.standard_ratios = [0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0]
         else:
             self.standard_ratios = standard_ratios
             
@@ -391,6 +392,93 @@ class FibZoneGenerator:
         }
         
         return stats
+    
+    def learn_effective_levels(self, zones: List[FibZone], events: List, min_events: int = 10) -> List[float]:
+        """
+        Learn which retracement levels are actually effective based on event data.
+        
+        Args:
+            zones: List of FibZone objects
+            events: List of zone touch events
+            min_events: Minimum number of events to consider a level effective
+            
+        Returns:
+            List of effective retracement levels
+        """
+        if not zones or not events:
+            return []
+        
+        # Count events per level
+        level_event_count = {}
+        level_success_rate = {}
+        
+        for zone in zones:
+            if zone.zone_type == 'retracement':
+                level = zone.level
+                if level not in level_event_count:
+                    level_event_count[level] = 0
+                    level_success_rate[level] = []
+                
+                # Find events for this zone
+                zone_events = [e for e in events if e.zone.level == level]
+                level_event_count[level] += len(zone_events)
+                
+                # Calculate success rate (simplified - events with wick rejection or retests)
+                for event in zone_events:
+                    success = 0
+                    if hasattr(event, 'wick_rejection') and event.wick_rejection:
+                        success += 1
+                    if hasattr(event, 'retest_count') and event.retest_count > 0:
+                        success += 1
+                    if hasattr(event, 'duration_bars') and event.duration_bars and event.duration_bars > 3:
+                        success += 1
+                    
+                    level_success_rate[level].append(success)
+        
+        # Find effective levels
+        effective_levels = []
+        for level, count in level_event_count.items():
+            if count >= min_events:
+                avg_success = np.mean(level_success_rate[level]) if level_success_rate[level] else 0
+                if avg_success > 0.3:  # At least 30% success rate
+                    effective_levels.append(level)
+        
+        # Sort by effectiveness (event count * success rate)
+        effectiveness = []
+        for level in effective_levels:
+            count = level_event_count[level]
+            success = np.mean(level_success_rate[level]) if level_success_rate[level] else 0
+            effectiveness.append((level, count * success))
+        
+        effectiveness.sort(key=lambda x: x[1], reverse=True)
+        
+        return [level for level, _ in effectiveness]
+    
+    def create_adaptive_zones(self, swings: List, learned_levels: List[float]) -> List[FibZone]:
+        """
+        Create zones using learned effective levels instead of traditional Fibonacci.
+        
+        Args:
+            swings: List of Swing objects
+            learned_levels: List of learned effective levels
+            
+        Returns:
+            List of FibZone objects using learned levels
+        """
+        if len(swings) < 2 or not learned_levels:
+            return []
+        
+        # Temporarily replace standard ratios with learned levels
+        original_ratios = self.standard_ratios
+        self.standard_ratios = learned_levels
+        
+        # Generate zones with learned levels
+        zones = self.generate_all_zones(swings)
+        
+        # Restore original ratios
+        self.standard_ratios = original_ratios
+        
+        return zones
 
 
 def test_fib_zones():

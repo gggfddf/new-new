@@ -28,10 +28,11 @@ class SystemConfig:
     min_swing_strength: float = 0.5
     min_swing_size: float = 0.001
     
-    # Fibonacci zones
+    # Fibonacci zones (will be learned, not traditional)
     fib_ratios: List[float] = None
     zone_width_factor: float = 0.1
     min_zone_size: float = 0.001
+    learn_levels: bool = True  # Enable adaptive level learning
     
     # Event generation
     min_touch_duration: int = 1
@@ -170,7 +171,23 @@ class FibMLSystem:
         print("Step 2: Generating Fibonacci zones...")
         zones = self.zone_generator.generate_all_zones(swings)
         zones = self.zone_generator.filter_zones_by_strength(zones, min_strength=0.3)
-        print(f"Generated {len(zones)} zones")
+        print(f"Generated {len(zones)} initial zones")
+        
+        # Step 2.5: Learn effective levels if enabled
+        if self.config.learn_levels:
+            print("Step 2.5: Learning effective retracement levels...")
+            # Generate initial events to learn from
+            temp_events = self.event_generator.detect_zone_touches(data, zones)
+            learned_levels = self.zone_generator.learn_effective_levels(zones, temp_events, min_events=5)
+            
+            if learned_levels:
+                print(f"Learned effective levels: {[f'{level:.3f}' for level in learned_levels[:10]]}")
+                # Regenerate zones with learned levels
+                zones = self.zone_generator.create_adaptive_zones(swings, learned_levels)
+                zones = self.zone_generator.filter_zones_by_strength(zones, min_strength=0.3)
+                print(f"Generated {len(zones)} zones using learned levels")
+            else:
+                print("No effective levels learned, using initial zones")
         
         if not zones:
             raise ValueError("No valid zones generated")
